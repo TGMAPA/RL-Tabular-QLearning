@@ -64,11 +64,11 @@ class SimpleEnv(MiniGridEnv):
         self.mission = "Reach the goal"
 
     def _place_agent(self):
-        print("Executing place agent")
+        #print("Executing place agent..")
 
         # return
         while True:
-            print("placing agent")
+            
             x = random.randint(1, self.size - 2)
             y = random.randint(1, self.size - 2)
             pos = (x, y)
@@ -76,16 +76,17 @@ class SimpleEnv(MiniGridEnv):
             if(x < self.size//2 + 1 or y < self.size//2 + 1):
                 continue
             
-            print(pos)
+            
             # Check if the position is empty (not wall, lava, floor, or goal)
             if (self.grid.get(*pos) is None and
                 pos != self.goal_pos):
                 self.agent_pos = pos
                 self.agent_dir = random.randint(0, 3)  # Random direction
                 break
+        #print(pos)
 
     def reset(self, **kwargs):
-        print("resetting")
+        #print("resetting")
         self.stepped_floors = set()
         obs = super().reset(**kwargs)
         # self._place_agent()  # Place the agent in a new random position
@@ -96,23 +97,16 @@ class SimpleEnv(MiniGridEnv):
         prev_dir=self.agent_dir
         obs, reward, terminated, truncated, info = super().step(action)
 
-        if(self.grid.get(*self.agent_pos) is None):
-            # print("this is normal floor. i.e., None")
-            reward=-0.2
-        
-        if(self.agent_pos[0]>17//2 ):
-            reward = -0.1
+        SIZE = self.size-2
 
-        if(self.agent_pos[1]>17//2 ):
-            reward = -0.1
+        reward = -0.2  # base penalty
 
-        if(self.agent_pos[0]>17//2 and self.agent_pos[1]>17//2):
-            reward = 0.1
+        if self.agent_pos[0] > SIZE//2 and self.agent_pos[1] > SIZE//2:
+            reward += 0.3  # incentivo por acercarse al goal
 
-        if(prev_dir==self.agent_dir and prev_pos ==  self.agent_pos):
-            print("BUMP!!!")
-            reward=-0.3
-        
+        if prev_dir == self.agent_dir and prev_pos == self.agent_pos:
+            reward -= 0.3  # castigo por chocar
+
         if isinstance(self.grid.get(*self.agent_pos), Goal):
             reward = 10
             terminated = True

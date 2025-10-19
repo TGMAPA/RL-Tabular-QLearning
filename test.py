@@ -11,7 +11,7 @@ import numpy as np
 import random
 import os
 from minigrid_simple_env import SimpleEnv
-from scipy import softmax
+from scipy.special import softmax
 
 def calc_state(agent_pos, width, height, direction):
     return (((agent_pos[1]-1) * (height-2) + (agent_pos[0]-1)) * 10) + direction
