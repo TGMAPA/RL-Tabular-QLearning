@@ -64,26 +64,28 @@ class SimpleEnv(MiniGridEnv):
         self.mission = "Reach the goal"
 
     def _place_agent(self):
-        #print("Executing place agent..")
+        # Evitar colocar al agente cerca del objetivo
+        min_distance = self.size // 2  # distancia mínima al goal
 
-        # return
         while True:
-            
             x = random.randint(1, self.size - 2)
             y = random.randint(1, self.size - 2)
             pos = (x, y)
 
-            if(x < self.size//2 + 1 or y < self.size//2 + 1):
-                continue
-            
-            
-            # Check if the position is empty (not wall, lava, floor, or goal)
-            if (self.grid.get(*pos) is None and
-                pos != self.goal_pos):
+            # Calcular distancia Manhattan al goal
+            goal_x, goal_y = self.goal_pos
+            distance = abs(goal_x - x) + abs(goal_y - y)
+
+            # Asegurarse de que el lugar esté vacío y lejos del objetivo
+            if (
+                self.grid.get(*pos) is None and
+                pos != self.goal_pos and
+                distance >= min_distance
+            ):
                 self.agent_pos = pos
-                self.agent_dir = random.randint(0, 3)  # Random direction
+                self.agent_dir = random.randint(0, 3)
                 break
-        #print(pos)
+
 
     def reset(self, **kwargs):
         #print("resetting")
