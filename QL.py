@@ -1,15 +1,13 @@
 from minigrid.wrappers import RGBImgObsWrapper
 from minigrid_simple_env import SimpleEnv
 import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
 
 
 def init_Q_Table(size, n_actions):
     q_table = {}
     for i in range(size):
         for j in range(size):
-            for d in range(4):  # 4 direcciones
+            for d in range(4):  # 4 directions
                 q_table[(i, j, d)] = np.zeros(shape=n_actions)
     return q_table
 
@@ -18,18 +16,14 @@ def q_learning_eq(lr, reward, discount_factor, Qk, maxQ):
     return Qk + lr * (reward + discount_factor * maxQ - Qk)
 
 
-def Qmax_state(Qtable: dict, current_state: tuple):
+def Qmax_state(Qtable, current_state):
     q_values = Qtable[current_state]
     max_idx = np.argmax(q_values)
     max_val = q_values[max_idx]
     return max_val, max_idx
 
-
-def smooth_curve(data, window=50):
-    return np.convolve(data, np.ones(window) / window, mode='valid')
-
-
 def train(env, qTable, EPISODES, STEPS, ACTIONS, LR, DISCOUNT_FACTOR):
+    # Exploration parameters
     max_epsilon = 1.0
     min_epsilon = 0.05
     decay_rate = 0.001
@@ -44,28 +38,31 @@ def train(env, qTable, EPISODES, STEPS, ACTIONS, LR, DISCOUNT_FACTOR):
         terminated = False
 
         for step in range(STEPS):
+            # Get current position and direction 
             pos = tuple(env.unwrapped.agent_pos)
             dir = env.unwrapped.agent_dir
             current_state = (pos[0], pos[1], dir)
 
-            # Política epsilon-greedy
+            # Action selection
             if np.random.uniform(0, 1) < epsilon:
+                # Random selection
                 action = np.random.randint(ACTIONS)
             else:
+                # MaxState
                 _, action = Qmax_state(qTable, current_state)
 
-            # Ejecutar acción
+            # Execute step with selected action
             obs, reward, terminated, truncated, info = env.step(action)
 
-            reward -= 0.001  # Pequeña penalización por paso
+            reward -= 0.001  # Add a small penalty for each step
             total_reward += reward
 
-            # Nuevo estado
+            # Get new state
             new_pos = tuple(env.unwrapped.agent_pos)
             new_dir = env.unwrapped.agent_dir
             next_state = (new_pos[0], new_pos[1], new_dir)
 
-            # Actualización Q-learning
+            # Apply qlearning eq for update
             qmax = np.max(qTable[next_state])
             qTable[current_state][action] = q_learning_eq(LR, reward, DISCOUNT_FACTOR, qTable[current_state][action], qmax)
 
@@ -87,12 +84,6 @@ def test(env, qTable, STEPS, SIZE, EPISODES):
     env = SimpleEnv(size=SIZE, render_mode="human")
     env = RGBImgObsWrapper(env)
 
-    action_map = {
-        0: env.actions.left,    # Girar izquierda
-        1: env.actions.right,   # Girar derecha
-        2: env.actions.forward  # Avanzar
-    }
-
     actions_names = ["Left", "Right", "Forward"]
     success_count = 0
 
@@ -103,19 +94,23 @@ def test(env, qTable, STEPS, SIZE, EPISODES):
         steps = 0
 
         while not terminated and steps < STEPS:
+            # Get current position and direction = State
             pos = tuple(env.unwrapped.agent_pos)
             dir = env.unwrapped.agent_dir
             current_state = (pos[0], pos[1], dir)
 
+            # Get max Q action
             _, q_action = Qmax_state(qTable, current_state)
-            real_action = action_map[q_action]
 
             print(f"Step {steps}: pos={current_state}, action={actions_names[q_action]}")
-            obs, reward, terminated, truncated, info = env.step(real_action)
+
+            # Get new state
+            obs, reward, terminated, truncated, info = env.step(q_action)
             total_reward += reward
             steps += 1
 
             if terminated or truncated:
+                # If the mission was completed then break the episode
                 break
 
         if terminated:
@@ -124,38 +119,3 @@ def test(env, qTable, STEPS, SIZE, EPISODES):
         print(f"Test Episode {episode} — Success={terminated}, Total Reward={total_reward:.2f}, Steps={steps}")
 
     print(f"\nSuccess rate during test: {success_count}/{EPISODES}")
-
-
-def main():
-    SIZE = 9
-    ACTIONS = 3
-    EPISODES = 2000
-    STEPS = 250
-    DISCOUNT_FACTOR = 0.98
-    LR = 0.03
-
-    env = SimpleEnv(size=SIZE, render_mode=None)
-    env = RGBImgObsWrapper(env)
-
-    qTable = init_Q_Table(SIZE, ACTIONS)
-    qTable = train(env, qTable, EPISODES, STEPS, ACTIONS, LR, DISCOUNT_FACTOR)
-
-    # Visualizar Q-table (promedio por posición)
-    q_values = np.zeros((SIZE, SIZE))
-    for i in range(SIZE):
-        for j in range(SIZE):
-            vals = []
-            for d in range(4):
-                vals.append(np.max(qTable[(i, j, d)]))
-            q_values[i, j] = np.mean(vals)
-
-    plt.figure(figsize=(6, 5))
-    sns.heatmap(q_values, annot=True, fmt=".2f", cmap="coolwarm")
-    plt.title("Promedio de Q-values por celda (promediando dirección)")
-    plt.show()
-
-    test(env, qTable, STEPS, SIZE, 10)
-
-
-if __name__ == "__main__":
-    main()
