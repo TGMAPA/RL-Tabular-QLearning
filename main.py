@@ -29,7 +29,7 @@ def main():
 
     plt.figure(figsize=(6, 5))
     sns.heatmap(q_values, annot=True, fmt=".2f", cmap="coolwarm")
-    plt.title("Promedio de Q-values por celda (promediando dirección)")
+    plt.title("Q-values mean per state")
     plt.show()
 
     # Test agent
