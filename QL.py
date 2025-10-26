@@ -109,8 +109,6 @@ def test(env, qTable, STEPS, SIZE, EPISODES):
     env = SimpleEnv(size=SIZE, render_mode="human")
     env = RGBImgObsWrapper(env)
 
-    # Nombre de las posibles acciones
-    actions_names = ["Left", "Right", "Forward"]
     success_count = 0
 
     # Ejecutar episodios de prueba
@@ -129,8 +127,6 @@ def test(env, qTable, STEPS, SIZE, EPISODES):
 
             # Seleccionar la mejor acción según la Q-table
             _, q_action = Qmax_state(qTable, current_state)
-
-            # print(f"Step {steps}: pos={current_state}, action={actions_names[q_action]}")
 
             # Ejecutar acción seleccionada
             obs, reward, terminated, truncated, info = env.step(q_action)
